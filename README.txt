@@ -7,7 +7,7 @@ UID: 504457700
 
 QUESTIONS 1.1
 
-1. It takes this many threads and iterations
+1. It takes this many threads and iterations to fail 
 
 2. A signifigantly smaller number of iterations seldomly fails
 
