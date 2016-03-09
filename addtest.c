@@ -91,7 +91,7 @@ int main(int argc, char* argv[]){
     clock_gettime(CLOCK_MONOTONIC,&endTime);
     //if count is not 0, report error
     if (counter != 0 ){
-        fprintf(stderr, "Error: Final Count = %lld \n", count);
+        fprintf(stderr, "Error: Final Count = %lld \n", counter);
     }
     int numOperations;
     numOperations = 2*numThreads*numIterations;
@@ -102,5 +102,5 @@ int main(int argc, char* argv[]){
 	float totalRunTime = endRunTime - startRunTime;
     printf("Elapsed Time: %f \n", totalRunTime);
     printf("Average Operation Time: %f \n", totalRunTime/numOperations);
-    exit(errNum);
+    exit(numErrors);
 }
