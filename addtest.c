@@ -7,6 +7,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #define noarg 0
 #define hasarg 1
@@ -81,7 +82,7 @@ int main(int argc, char* argv[]){
     }
     //wait for all children
     int childStatus;
-    while(child = waitpid(-1, &childStatus,0)){
+    while((child = waitpid(-1, &childStatus,0))){
         if (child == ECHILD){
             break;
         }
@@ -89,7 +90,7 @@ int main(int argc, char* argv[]){
     //get time
     clock_gettime(CLOCK_MONOTONIC,&endTime);
     //if count is not 0, report error
-    if (count != 0 ){
+    if (counter != 0 ){
         fprintf(stderr, "Error: Final Count = %lld \n", count);
     }
     int numOperations;
@@ -101,5 +102,5 @@ int main(int argc, char* argv[]){
 	float totalRunTime = endRunTime - startRunTime;
     printf("Elapsed Time: %f \n", totalRunTime);
     printf("Average Operation Time: %f \n", totalRunTime/numOperations);
-    exit(exitNum);
+    exit(errNum);
 }
