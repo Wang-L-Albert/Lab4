@@ -5,6 +5,8 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define noarg 0
 #define hasarg 1
@@ -20,8 +22,8 @@ void add(long long *pointer, long long value) {
 }
 
 int main(int argc, char* argv[]){
-    int exitNum;
-    exitNum = 0;
+    int numErrors;
+    numErrors = 0;
     struct timespec startTime;
     struct timespec endTime;
 
@@ -46,9 +48,9 @@ int main(int argc, char* argv[]){
             //option_ind is the option's index in argv[].
     		//global var optarg now points to option_ind+1, and optind to the index of the next index after optarg (first non-option
     		//in argv[] if no more options).
-            optionValue = getopt_long(argc,argv, "", optionList, optionIndex);
+            optionValue = getopt_long(argc,argv, "", optionList, &optionIndex);
             if (optionValue == '?'){//occurs when we find an option without the appropriate argument
-    			fprintf(stderr, "%s is missing an argument\n", optionlist[option_ind].name);
+    			fprintf(stderr, "%s is missing an argument\n", optionList[optionIndex].name);
     			numErrors++;
     			continue;
     		}
@@ -65,14 +67,14 @@ int main(int argc, char* argv[]){
 
         child = fork();
         if(child == -1){
-            exitNum = 1;
+            numErrors++;
         }
         if(child == 0){
             for (int c = 0; c < numIterations; c++){
-                add(&count, 1);
+                add(&counter, 1);
             }
             for (int d = 0; d < numIterations; d++){
-                add(&count, -1);
+                add(&counter, -1);
             }
             exit(0);
         }
@@ -80,7 +82,7 @@ int main(int argc, char* argv[]){
     //wait for all children
     int childStatus;
     while(child = waitpid(-1, &childStatus,0)){
-        if (pid == ECHILD){
+        if (child == ECHILD){
             break;
         }
     }
@@ -92,11 +94,11 @@ int main(int argc, char* argv[]){
     }
     int numOperations;
     numOperations = 2*numThreads*numIterations;
-    printf("Total number of operations performed: $d \n", numOperations);
+    printf("Total number of operations performed: %d \n", numOperations);
     //calculate run time
-    float startRunTime = (float) (startTime.tv_sec*1e9) + (float)(startTime.tv_usec);
-	float endRunTime = (float) (endTime.tv_sec*1e9) + (float)(endTime.tv_usec);
-	float totalRunTime = finalUserTime - firstUserTime;
+    float startRunTime = (float) (startTime.tv_sec*1e9) + (float)(startTime.tv_nsec);
+	float endRunTime = (float) (endTime.tv_sec*1e9) + (float)(endTime.tv_nsec);
+	float totalRunTime = endRunTime - startRunTime;
     printf("Elapsed Time: %f \n", totalRunTime);
     printf("Average Operation Time: %f \n", totalRunTime/numOperations);
     exit(exitNum);
