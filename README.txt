@@ -24,14 +24,17 @@ QUESTIONS 1.2
 
 4. Using --yield, we can not get valid timings because we cannot tell how much time was spent switching between threads. We cannot isolate or time when that happens. 
 
+busy waiting
+waiting in loop 
+uses processing power and thread takes CPU time checking lock availability
 
 QUESTIONS 1.3
 
-1. All options perform similarly for low numbers of threads because not as much parallelization can happen. Therefore, all operations take around the same amount of time.
+1. All options perform similarly for low numbers of threads because there are only so many threads to grab locks or make comparisons. With fewer threads, there is less waiting for each thread to do so.
 
-2. The three protected operations slow down as the number of threads increases
+2. The three protected operations slow down as the number of threads increases because more threads wait to grab the lock, or go through more comparisons. 
 
-3. Spin locks are expensive for large number of threads
+3. Spin locks are expensive for large number of threads as there is more contention for the spinlock; the threads do busy-waiting. Whenever a thread has its turn, it waits in a loop, taking CPU time to continuously check the lock.
 
 
 QUESTION 2.1
