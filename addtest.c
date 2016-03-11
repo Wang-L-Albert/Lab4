@@ -67,16 +67,16 @@ void atomicAdd(long long *pointer, long long value){
 
 void chooseAdd(int addVal){
     if(mutexFlag){
-        printf("Using mutex. \n");
+        //printf("Using mutex. \n");
         mutexAdd(&counter, addVal);
     } else if (spinFlag){
-        printf("Using spin. \n");
+        //printf("Using spin. \n");
         spinAdd(&counter, addVal);
     } else if (atomicFlag){
-        printf("Using atomic. \n");
+        //printf("Using atomic. \n");
         atomicAdd(&counter, addVal);
     } else{
-        printf("Using regular. \n");
+        //printf("Using regular. \n");
         add(&counter, addVal);
     }
 }
@@ -188,7 +188,7 @@ int main(int argc, char* argv[]){
     printf("Final Count: %lld \n",counter);
     int numOperations;
     numOperations = 2 * numThreads * numIterations;
-    printf("Total number of operations performed: %d ns \n", numOperations);
+    printf("Total number of operations performed: %d \n", numOperations);
     //calculate run time
     //printf("Starting Time: %f s \n", (float)startTime.tv_sec);
     //printf("Starting Time: %f ns \n", (float)startTime.tv_nsec);
