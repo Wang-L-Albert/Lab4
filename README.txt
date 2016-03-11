@@ -16,13 +16,13 @@ With a greater number of threads, more threads are modifying the global counter,
 
 QUESTIONS 1.2
 
-1. The average cost per operation drops with increasing iterations
+1. The average cost per operation drops with increasing iterations because the ratio of work done compared to thread operation. Economies of scale show that the time for creating a thread becomes a smaller ratio of the overall cost for operations for increasing iterations. 
 
-2. The "correct" cost 
+2. The "correct" cost is the overall cost for operations subtracting the time taken for thread creation. 
 
-3. --yield runs much slower
+3. --yield runs much slower because of context switching; threads have to wait as the CPU switches from one thread to another.
 
-4. Using --yield, we can _____ get valid timings
+4. Using --yield, we can not get valid timings because we cannot tell how much time was spent switching between threads. We cannot isolate or time when that happens. 
 
 
 QUESTIONS 1.3
