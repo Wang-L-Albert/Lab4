@@ -3,7 +3,7 @@ CFLAGS = -g -Wall -Wextra -Wno-unused -Werror -std=c99
 EXECUTABLE_NAME = addtest
 
 default: addtest.c 
-	$(CC) $(CFLAGS) $^ -o $(EXECUTABLE_NAME) -lrt
+	$(CC) $(CFLAGS) $^ -o $(EXECUTABLE_NAME) -lrt -pthread
     
 clean:
 	rm -f $(EXECUTABLE_NAME) *.o *.tar.gz
