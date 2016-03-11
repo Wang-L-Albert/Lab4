@@ -18,10 +18,16 @@
 
 #define THREADS 'a'
 #define ITERATIONS 'b'
+#define YIELD 'c'
 
 long long counter;
+int opt_yield;
+
 void add(long long *pointer, long long value) {
        long long sum = *pointer + value;
+       if(opt_yield){
+	 pthread_yield();
+       }
        *pointer = sum;
 }
 
@@ -49,12 +55,14 @@ int main(int argc, char* argv[]){
     struct option optionList[]= {
         {"threads", optionalarg, noflag, THREADS},
         {"iterations", optionalarg, noflag, ITERATIONS},
+	{"yield", optionalarg, noflag, YIELD},
         {0,0,0,0}
     };
     //initialize default values
     numThreads = 1;
     numIterations = 1;
     counter = 0;
+    opt_yield = 0;
     //get starting time values
     clock_gettime(CLOCK_MONOTONIC, &startTime);
     //see if there's any passed in values for threads and iter
@@ -66,23 +74,26 @@ int main(int argc, char* argv[]){
     		//global var optarg now points to option_ind+1, and optind to the index of the next index after optarg (first non-option
     		//in argv[] if no more options).
             optionValue = getopt_long(argc,argv, "", optionList, &optionIndex);
-            if (optionValue == '?'){//occurs when we find an option without the appropriate argument
-    			fprintf(stderr, "%s is missing an argument\n", optionList[optionIndex].name);
-    			numErrors++;
-    			continue;
-    		}
-            if(optionValue == THREADS){
-	      if(optarg != NULL){
-                numThreads = atoi(optarg);
+	    if(optarg != NULL){
+	      switch(optionValue) {
+	      case '?'://occurs when we find an option without the appropriate argument
+		fprintf(stderr, "%s is missing an argument\n", optionList[optionIndex].name);
+    		numErrors++;
+    		break;
+    	      case THREADS:
+		numThreads = atoi(optarg);
 		printf("NumThreads: %i \n",numThreads);
-	      }
-            } else if (optionValue == ITERATIONS){
-	      if(optarg != NULL){
-                numIterations = atoi(optarg);
+		break;
+	      case ITERATIONS:
+	        numIterations = atoi(optarg);
 		printf("NumIterations: %i \n",numIterations);
-	      } 
-            }
-        }
+		break;
+	      case YIELD:
+		opt_yield = 1;
+		break;
+	      }
+	    }
+	}
     }
     pthread_t tids[numThreads];
     int tid;
@@ -91,6 +102,8 @@ int main(int argc, char* argv[]){
       tid = pthread_create(&tids[b], NULL, executeAdd, (void*)&numIterations);
       if (tid == -1){
 	numErrors++;
+	printf("Failed to create a thread. \n");
+	exit(numErrors);
       }
     }
     for (int c = 0; c < numThreads; c++){
@@ -100,7 +113,7 @@ int main(int argc, char* argv[]){
     clock_gettime(CLOCK_MONOTONIC,&endTime);
     //if count is not 0, report error
     if (counter != 0 ){
-        fprintf(stderr, "Error: Final Count = %lld ns \n", counter);
+        fprintf(stderr, "Error: Final Count = %lld \n", counter);
     }
     printf("Final Count: %lld \n",counter);
     int numOperations;
