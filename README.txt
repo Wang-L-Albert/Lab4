@@ -7,9 +7,11 @@ UID: 504457700
 
 QUESTIONS 1.1
 
-1. It takes this many threads and iterations to fail 
+Fails at 10 threads and 1000 iterations.
+1. It takes this many threads and iterations to fail because a higher number of iterations and threads increase the chance of race conditions.
+With a greater number of threads, more threads are modifying the global counter, especially for a greater number of iterations.
 
-2. A signifigantly smaller number of iterations seldomly fails
+2. A signifigantly smaller number of iterations seldomly fails because it lowers the chance of collision. Smaller number of iterations also means that context switching is less likely to affect the global variable, as the changes may negate each other.
 
 
 QUESTIONS 1.2
