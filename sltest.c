@@ -56,7 +56,7 @@ SortedList_t* head;
  *		call pthread_yield in middle of critical section
  */
 void SortedList_insert(SortedList_t *list, SortedListElement_t *element){
-
+    printf("Running regular. \n");
     printf("Inserting element with key: %s \n", element->key);
     const char* keyToBeAdded;
     keyToBeAdded = element->key;
@@ -80,7 +80,7 @@ void SortedList_insert(SortedList_t *list, SortedListElement_t *element){
                 printf("Found a bigger word. \n");
                 iterator->prev->next = element;
                 element->prev = iterator->prev;
-                if(opt_yield && INSERT_YIELD){
+                if(opt_yield & INSERT_YIELD){
                     pthread_yield();
                 }
                 iterator->prev = element;
@@ -100,7 +100,7 @@ void SortedList_insert(SortedList_t *list, SortedListElement_t *element){
             printf("Found a bigger word outside of loop. \n");
             iterator->prev->next = element;
             element->prev = iterator->prev;
-            if(opt_yield && INSERT_YIELD){
+            if(opt_yield & INSERT_YIELD){
                 pthread_yield();
             }
             iterator->prev = element;
@@ -112,10 +112,156 @@ void SortedList_insert(SortedList_t *list, SortedListElement_t *element){
         printf("Adding element to the end. \n");
         //if we're here, the element we want to add is the greatest, tack it to the end
         iterator->next = element;
-        if(opt_yield && INSERT_YIELD){
+        if(opt_yield & INSERT_YIELD){
             pthread_yield();
         }
         element->prev = iterator;
+
+}
+void mutexSortedList_insert(SortedList_t *list, SortedListElement_t *element){
+printf("Running mutex. \n");
+    printf("Inserting element with key: %s \n", element->key);
+    const char* keyToBeAdded;
+    keyToBeAdded = element->key;
+    //int i = strcmp(keyToBeAdded, list->key);
+    //if (i != NULL){
+    //    printf("After strcmp. I = %d \n", i);
+//    }
+    //traverse through linked list until we find the first element
+    //with a key > ours.
+    SortedListElement_t * iterator;
+    //start iterator at first element
+    iterator = list;
+    printf("Before while loop. \n");
+    pthread_mutex_lock(&mutex);
+    while(iterator->next != NULL){//loop until iterator points to the last element
+        //if keyToBeAdded < iterator->key, then we've found the element we want to insert before
+        printf("Inside while loop. \n");
+        if (iterator->key != NULL){
+            printf("Inside if. \n");
+            if(strcmp(keyToBeAdded, iterator->key) < 0){
+            //insert the element
+                printf("Found a bigger word. \n");
+
+                iterator->prev->next = element;
+                element->prev = iterator->prev;
+                if(opt_yield & INSERT_YIELD){
+                    pthread_yield();
+                }
+                iterator->prev = element;
+                element->next = iterator;
+
+                pthread_mutex_unlock(&mutex);
+                return;
+            }
+        }
+        iterator = iterator -> next;
+    }
+    pthread_mutex_unlock(&mutex);
+    //iterator now points to last element in list
+
+    printf("Outside of loop. \n");
+    pthread_mutex_lock(&mutex);
+    if (iterator->key != NULL){
+        printf("inside outside nullcheck. \n");
+        if(strcmp(keyToBeAdded, iterator->key) < 0){
+            //insert the element
+            printf("Found a bigger word outside of loop. \n");
+
+            iterator->prev->next = element;
+            element->prev = iterator->prev;
+            if(opt_yield & INSERT_YIELD){
+                pthread_yield();
+            }
+            iterator->prev = element;
+            element->next = iterator;
+            pthread_mutex_unlock(&mutex);
+            return;
+        }
+    }
+    pthread_mutex_unlock(&mutex);
+        printf("Adding element to the end. \n");
+        //if we're here, the element we want to add is the greatest, tack it to the end
+        pthread_mutex_lock(&mutex);
+        iterator->next = element;
+        if(opt_yield & INSERT_YIELD){
+            pthread_yield();
+        }
+        element->prev = iterator;
+        pthread_mutex_unlock(&mutex);
+
+}
+void spinSortedList_insert(SortedList_t *list, SortedListElement_t *element){
+printf("Running spin. \n");
+    printf("Inserting element with key: %s \n", element->key);
+    const char* keyToBeAdded;
+    keyToBeAdded = element->key;
+    //int i = strcmp(keyToBeAdded, list->key);
+    //if (i != NULL){
+    //    printf("After strcmp. I = %d \n", i);
+//    }
+    //traverse through linked list until we find the first element
+    //with a key > ours.
+    SortedListElement_t * iterator;
+    //start iterator at first element
+    iterator = list;
+    printf("Before while loop. \n");
+    while(__sync_lock_test_and_set(&spinLock, 1)){
+        continue;
+    }
+    while(iterator->next != NULL){//loop until iterator points to the last element
+        //if keyToBeAdded < iterator->key, then we've found the element we want to insert before
+        printf("Inside while loop. \n");
+        if (iterator->key != NULL){
+            printf("Inside if. \n");
+            if(strcmp(keyToBeAdded, iterator->key) < 0){
+            //insert the element
+                printf("Found a bigger word. \n");
+
+                iterator->prev->next = element;
+                element->prev = iterator->prev;
+                if(opt_yield & INSERT_YIELD){
+                    pthread_yield();
+                }
+                iterator->prev = element;
+                element->next = iterator;
+                __sync_lock_release(&spinLock);
+                return;
+            }
+        }
+        iterator = iterator -> next;
+    }
+    __sync_lock_release(&spinLock);
+    //iterator now points to last element in list
+    while(__sync_lock_test_and_set(&spinLock, 1)){
+        continue;
+    }
+    printf("Outside of loop. \n");
+    if (iterator->key != NULL){
+        printf("inside outside nullcheck. \n");
+        if(strcmp(keyToBeAdded, iterator->key) < 0){
+            //insert the element
+            printf("Found a bigger word outside of loop. \n");
+
+            iterator->prev->next = element;
+            element->prev = iterator->prev;
+            if(opt_yield & INSERT_YIELD){
+                pthread_yield();
+            }
+            iterator->prev = element;
+            element->next = iterator;
+            __sync_lock_release(&spinLock);
+            return;
+        }
+    }
+        printf("Adding element to the end. \n");
+        //if we're here, the element we want to add is the greatest, tack it to the end
+        iterator->next = element;
+        if(opt_yield & INSERT_YIELD){
+            pthread_yield();
+        }
+        element->prev = iterator;
+        __sync_lock_release(&spinLock);
 
 }
 
@@ -136,6 +282,7 @@ void SortedList_insert(SortedList_t *list, SortedListElement_t *element){
  *		call pthread_yield in middle of critical section
  */
 int SortedList_delete( SortedListElement_t *element){
+    printf("Running regular. \n");
     printf("Deleting element with key: %s \n", element->key);
     const char* keyToBeDeleted;
     keyToBeDeleted = element->key;
@@ -152,7 +299,7 @@ int SortedList_delete( SortedListElement_t *element){
                 //delete from list
                 iterator->next->prev = iterator->prev;
                 iterator->prev->next = iterator->next;
-                if(opt_yield && DELETE_YIELD){
+                if(opt_yield & DELETE_YIELD){
                     pthread_yield();
                 }
                 iterator->prev = NULL;
@@ -169,7 +316,7 @@ int SortedList_delete( SortedListElement_t *element){
     if(iterator->key == keyToBeDeleted){
         if (iterator->prev->next == element){
             iterator->prev->next = NULL;
-            if(opt_yield && DELETE_YIELD){
+            if(opt_yield & DELETE_YIELD){
                 pthread_yield();
             }
             iterator->prev = NULL;
@@ -177,6 +324,112 @@ int SortedList_delete( SortedListElement_t *element){
             return 0;
         }
     }
+    return 1;
+}
+int mutexSortedList_delete( SortedListElement_t *element){
+    printf("Running mutex. \n");
+    printf("Deleting element with key: %s \n", element->key);
+    const char* keyToBeDeleted;
+    keyToBeDeleted = element->key;
+    SortedListElement_t * iterator;
+    //start iterator at head
+    iterator = head;
+    pthread_mutex_lock(&mutex);
+    while(iterator->next != NULL){//loop until iterator points to the last element
+        //if we found the key we want to delete
+        if(iterator->key == keyToBeDeleted){
+            //check that prev->next and next->prev point to elements
+            int prevCheck = (iterator->prev->next == element);
+            int nextCheck = (iterator->next->prev == element);
+            if (prevCheck && nextCheck){
+                //delete from list
+                iterator->next->prev = iterator->prev;
+                iterator->prev->next = iterator->next;
+                if(opt_yield & DELETE_YIELD){
+                    pthread_yield();
+                }
+                iterator->prev = NULL;
+                iterator->next = NULL;
+                pthread_mutex_unlock(&mutex);
+                return 0;
+            } else{
+                return 1;
+            }
+        } else{
+            iterator = iterator -> next;
+        }
+    }
+    //if we're here, iterator points to last element, we still haven't found a matching
+    if(iterator->key == keyToBeDeleted){
+        if (iterator->prev->next == element){
+
+            iterator->prev->next = NULL;
+            if(opt_yield & DELETE_YIELD){
+                pthread_yield();
+            }
+            iterator->prev = NULL;
+            iterator->next = NULL;
+            pthread_mutex_unlock(&mutex);
+            return 0;
+        }
+    }
+
+    pthread_mutex_unlock(&mutex);
+    return 1;
+}
+int spinSortedList_delete( SortedListElement_t *element){
+    printf("Running spin. \n");
+    printf("Deleting element with key: %s \n", element->key);
+    const char* keyToBeDeleted;
+    keyToBeDeleted = element->key;
+    SortedListElement_t * iterator;
+    //start iterator at head
+    iterator = head;
+
+    while(__sync_lock_test_and_set(&spinLock, 1)){
+        continue;
+    }
+    while(iterator->next != NULL){//loop until iterator points to the last element
+        //if we found the key we want to delete
+        if(iterator->key == keyToBeDeleted){
+            //check that prev->next and next->prev point to elements
+            int prevCheck = (iterator->prev->next == element);
+            int nextCheck = (iterator->next->prev == element);
+            if (prevCheck && nextCheck){
+                //delete from list
+                iterator->next->prev = iterator->prev;
+                iterator->prev->next = iterator->next;
+                if(opt_yield & DELETE_YIELD){
+                    pthread_yield();
+                }
+                iterator->prev = NULL;
+                iterator->next = NULL;
+                __sync_lock_release(&spinLock);
+                return 0;
+            } else{
+
+                __sync_lock_release(&spinLock);
+                return 1;
+            }
+        } else{
+            iterator = iterator -> next;
+        }
+    }
+    //if we're here, iterator points to last element, we still haven't found a matching
+    if(iterator->key == keyToBeDeleted){
+        if (iterator->prev->next == element){
+            iterator->prev->next = NULL;
+            if(opt_yield & DELETE_YIELD){
+                pthread_yield();
+            }
+            iterator->prev = NULL;
+            iterator->next = NULL;
+            __sync_lock_release(&spinLock);
+            return 0;
+        }
+    }
+
+    __sync_lock_release(&spinLock);
     return 1;
 }
 
@@ -195,6 +448,7 @@ int SortedList_delete( SortedListElement_t *element){
  *		call pthread_yield in middle of critical section
  */
 SortedListElement_t *SortedList_lookup(SortedList_t *list, const char *key){
+    printf("Running regular. \n");
     printf("Looking up element with key: %s \n", key);
     const char* keyToFind;
     keyToFind = key;
@@ -206,7 +460,7 @@ SortedListElement_t *SortedList_lookup(SortedList_t *list, const char *key){
         if(iterator->key == keyToFind){
             break;
         } else{
-            if(opt_yield && SEARCH_YIELD){
+            if(opt_yield & SEARCH_YIELD){
                 pthread_yield();
             }
             iterator = iterator -> next;
@@ -218,7 +472,72 @@ SortedListElement_t *SortedList_lookup(SortedList_t *list, const char *key){
     }
     return iterator;
 }
+SortedListElement_t *mutexSortedList_lookup(SortedList_t *list, const char *key){
+    printf("Running mutex. \n");
+    printf("Looking up element with key: %s \n", key);
+    const char* keyToFind;
+    keyToFind = key;
+    SortedListElement_t * iterator;
+    //start iterator at first element
+    iterator = list;
 
+        pthread_mutex_lock(&mutex);
+    while(iterator->next != NULL){//loop until iterator points to the last element
+        //if we found the key we want to delete
+        if(iterator->key == keyToFind){
+            break;
+        } else{
+            if(opt_yield & SEARCH_YIELD){
+                pthread_yield();
+            }
+            iterator = iterator -> next;
+            pthread_mutex_unlock(&mutex);
+        }
+    }
+    //the check for once we're at the last element
+    if (iterator->key != keyToFind){
+
+        pthread_mutex_unlock(&mutex);
+        return NULL;
+    }
+
+    pthread_mutex_unlock(&mutex);
+    return iterator;
+}
+SortedListElement_t *spinSortedList_lookup(SortedList_t *list, const char *key){
+    printf("Running spin. \n");
+    printf("Looking up element with key: %s \n", key);
+    const char* keyToFind;
+    keyToFind = key;
+    SortedListElement_t * iterator;
+    //start iterator at first element
+    iterator = list;
+
+        while(__sync_lock_test_and_set(&spinLock, 1)){
+            continue;
+        }
+    while(iterator->next != NULL){//loop until iterator points to the last element
+        //if we found the key we want to delete
+        if(iterator->key == keyToFind){
+            break;
+        } else{
+            if(opt_yield & SEARCH_YIELD){
+                pthread_yield();
+            }
+            iterator = iterator -> next;
+            __sync_lock_release(&spinLock);
+        }
+    }
+    //the check for once we're at the last element
+    if (iterator->key != keyToFind){
+
+        __sync_lock_release(&spinLock);
+        return NULL;
+    }
+
+    __sync_lock_release(&spinLock);
+    return iterator;
+}
 /**
  * SortedList_length ... count elements in a sorted list
  *	While enumeratign list, it checks all prev/next pointers
@@ -232,6 +551,7 @@ SortedListElement_t *SortedList_lookup(SortedList_t *list, const char *key){
  *		call pthread_yield in middle of critical section
  */
 int SortedList_length(SortedList_t *list){
+    printf("Running regular. \n");
     printf("Getting length of list. \n");
     int count;
     count = 0;
@@ -243,7 +563,7 @@ int SortedList_length(SortedList_t *list){
         //move to next one
         printf("Inside loop. \n");
         //SortedListElement_t * nextElement;
-        if(opt_yield && SEARCH_YIELD){
+        if(opt_yield & SEARCH_YIELD){
             pthread_yield();
         }
         printf("Spot 1. \n");
@@ -267,7 +587,98 @@ int SortedList_length(SortedList_t *list){
     }
     return count;
 }
+int mutexSortedList_length(SortedList_t *list){
+    printf("Running mutex. \n");
+    printf("Getting length of list. \n");
+    int count;
+    count = 0;
+    SortedListElement_t * iterator;
+    //start iterator at first element
+    iterator = list->next;
+    printf("Outside loop. \n");
 
+    pthread_mutex_lock(&mutex);
+    while(iterator != NULL){
+        //move to next one
+        printf("Inside loop. \n");
+        //SortedListElement_t * nextElement;
+        if(opt_yield & SEARCH_YIELD){
+            pthread_yield();
+        }
+        printf("Spot 1. \n");
+        //nextElement = iterator->next;
+        //check pointers?
+        printf("Spot 2. \n");
+        //if next is not null, next->prev should be ourselves
+        if (iterator->next != NULL){
+            if (iterator->next->prev != iterator){
+
+                pthread_mutex_unlock(&mutex);
+                return -1;
+            }
+        }
+        if (iterator->prev != NULL){
+            if (iterator->prev->next != iterator){
+
+                pthread_mutex_unlock(&mutex);
+                return -1;
+            }
+        }
+        printf("spot 3. \n");
+        iterator = iterator->next;
+        pthread_mutex_unlock(&mutex);
+        count++;
+    }
+
+    pthread_mutex_unlock(&mutex);
+    return count;
+}
+int spinSortedList_length(SortedList_t *list){
+    printf("Running spin. \n");
+    printf("Getting length of list. \n");
+    int count;
+    count = 0;
+    SortedListElement_t * iterator;
+    //start iterator at first element
+    iterator = list->next;
+    printf("Outside loop. \n");
+
+    while(__sync_lock_test_and_set(&spinLock, 1)){
+        continue;
+    while(iterator != NULL){
+        //move to next one
+        printf("Inside loop. \n");
+        //SortedListElement_t * nextElement;
+        }
+        if(opt_yield & SEARCH_YIELD){
+            pthread_yield();
+        }
+        printf("Spot 1. \n");
+        //nextElement = iterator->next;
+        //check pointers?
+        printf("Spot 2. \n");
+        //if next is not null, next->prev should be ourselves
+        if (iterator->next != NULL){
+            if (iterator->next->prev != iterator){
+
+                __sync_lock_release(&spinLock);
+                return -1;
+            }
+        }
+        if (iterator->prev != NULL){
+            if (iterator->prev->next != iterator){
+
+                __sync_lock_release(&spinLock);
+                return -1;
+            }
+        }
+        printf("spot 3. \n");
+        iterator = iterator->next;
+        __sync_lock_release(&spinLock);
+        count++;
+    }
+    return count;
+}
 /**
  * variable to enable diagnositc calls to pthread_yield
  */
@@ -286,19 +697,43 @@ void* ListOperations(void* arguments){
         printf("ListOperation start: %d \n", start);
             printf("ListOperation a: %d \n", a);
             printf("ListOperation end: %d \n", end);
-
-        SortedList_insert(head, &elementArray[a]);
+        if(spinFlag){
+            spinSortedList_insert(head, &elementArray[a]);
+        } else if (mutexFlag){
+            mutexSortedList_insert(head, &elementArray[a]);
+        } else{
+            SortedList_insert(head, &elementArray[a]);
+        }
     }
 
     //printf("Element 1 : %s \n", head->key);
     //printf("Element 2 : %s \n", head->next->key);
     //printf("Element 3 : %s \n", head->next->next->key);
-    int length = SortedList_length(head);
+    int length;
+    if(spinFlag){
+        length = spinSortedList_length(head);
+    } else if (mutexFlag){
+        length = mutexSortedList_length(head);
+    } else{
+        length = SortedList_length(head);
+    }
     printf("Length: %d \n", length);
     SortedListElement_t * elementToDelete;
     for (int b = start; b < end; b++){
-        elementToDelete = SortedList_lookup(head, elementArray[b].key);
-        SortedList_delete(elementToDelete);
+        if(spinFlag){
+            elementToDelete = spinSortedList_lookup(head, elementArray[b].key);
+        } else if (mutexFlag){
+            elementToDelete = mutexSortedList_lookup(head, elementArray[b].key);
+        } else{
+            elementToDelete = SortedList_lookup(head, elementArray[b].key);
+        }
+        if(spinFlag){
+            spinSortedList_delete(elementToDelete);
+        } else if (mutexFlag){
+            mutexSortedList_delete(elementToDelete);
+        } else{
+            SortedList_delete(elementToDelete);
+        }
     }
     pthread_exit(NULL);
 }
@@ -323,7 +758,7 @@ int main(int argc, char* argv[]){
     numIterations = 1;
     counter = 0;
     opt_yield = 0;
-    mutexFlag = 0;
+    mutexFlag = 1;
     spinFlag = 0;
     atomicFlag = 0;
     spinLock = 0;
@@ -365,17 +800,27 @@ int main(int argc, char* argv[]){
 		                printf("NumIterations: %i \n",numIterations);
 		                break;
                     case YIELD:
-                        opt_yield = 1;
                         if (*optarg == 'i'){
+                            opt_yield | INSERT_YIELD;
                             printf("Set insert. \n");
-                            yieldInsert = 1;
+                            //yieldInsert = 1;
                         } else if (*optarg == 'd'){
+                            opt_yield | DELETE_YIELD;
                             printf("Set delete. \n");
-                            yieldDelete = 1;
+                            //yieldDelete = 1;
                         } else if (*optarg == 's'){
+                            opt_yield | SEARCH_YIELD;
                             printf("Set searches. \n");
-                            yieldSearches = 1;
-                        } else {
+                            //yieldSearches = 1;
+                        } else if (strcmp(argv[optind], "is")){
+                            opt_yield | INSERT_YIELD |SEARCH_YIELD;
+                            printf("Set insert searches. \n");
+                            //yieldSearches = 1;
+                        } else if (strcmp(argv[optind], "id")){
+                            opt_yield | INSERT_YIELD |DELETE_YIELD;
+                            printf("Set insert delete. \n");
+                            //yieldSearches = 1;
+                        }else {
                             printf("Could not set yield. \n");
                         }
 		                break;
@@ -387,9 +832,6 @@ int main(int argc, char* argv[]){
                         } else if (*optarg == 's'){
                             printf("Set spin. \n");
                             spinFlag = 1;
-                        } else if (*optarg == 'c'){
-                            printf("Set atomic. \n");
-                            atomicFlag = 1;
                         } else {
                             printf("Could not set sync. \n");
                         }
